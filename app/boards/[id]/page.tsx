@@ -25,7 +25,7 @@ import { ColumnWithTasks, Task } from "@/lib/supabase/models";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Calendar, MoreHorizontal, Plus, User } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -45,6 +45,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// Input shape used when creating/updating tasks via forms
+type TaskInput = {
+  title: string;
+  description?: string;
+  assignee?: string;
+  dueDate?: string;
+  priority: "low" | "medium" | "high";
+};
+
 function DroppableColumn({
   column,
   children,
@@ -53,7 +62,7 @@ function DroppableColumn({
 }: {
   column: ColumnWithTasks;
   children: React.ReactNode;
-  onCreateTask: (taskData: any) => Promise<void>;
+  onCreateTask: (e: FormEvent<HTMLFormElement>) => Promise<void>;
   onEditColumn: (column: ColumnWithTasks) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -207,9 +216,9 @@ function SortableTask({ task, columnId }: { task: Task; columnId: string }) {
     setIsEditingTask(true);
     setCurrentTask(task.id);
   }
-  async function handleUpdateTask(e: any) {
+  async function handleUpdateTask(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
     const taskData = {
       title: formData.get("title") as string,
       description: (formData.get("description") as string) || undefined,
@@ -217,7 +226,7 @@ function SortableTask({ task, columnId }: { task: Task; columnId: string }) {
       dueDate: (formData.get("dueDate") as string) || undefined,
       priority:
         (formData.get("priority") as "low" | "medium" | "high") || "medium",
-    };
+    } as TaskInput;
 
     if (taskData.title.trim() && curentTask === displayedTask.id) {
       await updateTask(displayedTask.id, columnId, taskData);
@@ -496,13 +505,7 @@ export default function BoardPage() {
     } catch {}
   }
 
-  async function createTask(taskData: {
-    title: string;
-    description?: string;
-    assignee?: string;
-    dueDate?: string;
-    priority: "low" | "medium" | "high";
-  }) {
+  async function createTask(taskData: TaskInput) {
     const targetColumn = columns[0];
     if (!targetColumn) {
       throw new Error("No column available to add task");
@@ -511,9 +514,9 @@ export default function BoardPage() {
     await createRealTask(targetColumn.id, taskData);
   }
 
-  async function handleCreateTask(e: any) {
+  async function handleCreateTask(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
     const taskData = {
       title: formData.get("title") as string,
       description: (formData.get("description") as string) || undefined,
@@ -521,7 +524,7 @@ export default function BoardPage() {
       dueDate: (formData.get("dueDate") as string) || undefined,
       priority:
         (formData.get("priority") as "low" | "medium" | "high") || "medium",
-    };
+    } as TaskInput;
 
     if (taskData.title.trim()) {
       await createTask(taskData);
