@@ -159,6 +159,23 @@ export const taskService = {
     if (error) throw error;
     return data;
   },
+  async updateTask(
+    supabase: SupabaseClient,
+    taskId: string,
+    task: Omit<
+      Task,
+      "id" | "created_at" | "updated_at" | "column_id" | "sort_order"
+    >
+  ) {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ ...task })
+      .eq("id", taskId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 export const boardDataService = {

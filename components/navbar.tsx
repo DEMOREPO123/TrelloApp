@@ -9,10 +9,10 @@ import {
   Trello,
 } from "lucide-react";
 import React from "react";
-import { Button } from "./button";
+import { Button } from "./ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Badge } from "./badge";
+import { Badge } from "./ui/badge";
 
 interface Props {
   boardTitle?: string;

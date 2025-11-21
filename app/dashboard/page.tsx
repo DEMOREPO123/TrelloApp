@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import Navbar from "@/components/ui/navbar";
+import Navbar from "@/components/navbar";
 import { useBoards } from "@/lib/hooks/useBoards";
 // import useBoards from "@/lib/hooks/useBoards";
 import { useUser } from "@clerk/nextjs";
