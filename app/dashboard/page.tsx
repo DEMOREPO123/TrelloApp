@@ -18,7 +18,6 @@ import {
   Filter,
   Grid3X3,
   List,
-  Loader2,
   Plus,
   Rocket,
   Search,
@@ -26,11 +25,50 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Board } from "@/lib/supabase/models";
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const { createBoard, boards, loading, error } = useBoards();
+  const { createBoard, boards, error } = useBoards();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    search: "",
+    dateRange: {
+      start: null as string | null,
+      end: null as string | null,
+    },
+    taskCount: {
+      min: null as number | null,
+      max: null as number | null,
+    },
+  });
+
+  const boardsWithTaskCount = boards.map((board: Board) => ({
+    ...board,
+    taskCount: 0, // This would need to be calculated from actual data
+  }));
+
+  const filteredBoards = boardsWithTaskCount.filter((board: Board) => {
+    const matchesSearch = board.title
+      .toLowerCase()
+      .includes(filters.search.toLowerCase());
+
+    const matchesDateRange =
+      (!filters.dateRange.start ||
+        new Date(board.created_at) >= new Date(filters.dateRange.start)) &&
+      (!filters.dateRange.end ||
+        new Date(board.created_at) <= new Date(filters.dateRange.end));
+
+    return matchesSearch && matchesDateRange;
+  });
   const handleCreateBoard = async () => {
     // Logic to create a new board
     console.log("first");
@@ -59,10 +97,18 @@ export default function DashboardPage() {
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8 ">
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
-            Welcome Back,
-            {user?.firstName ?? user?.emailAddresses[0].emailAddress}!
+            Welcome Back,{""}
+            {(() => {
+              const name =
+                user?.firstName ??
+                user?.emailAddresses?.[0]?.emailAddress ??
+                "";
+
+              return name.charAt(0).toUpperCase() + name.slice(1);
+            })()}{" "}
+            !
           </h1>
-          <p className=" text-gray-600">
+          <p className=" text-gray-600 mb-2">
             Here&apos;s what&apos;s happening with your boards today.
           </p>
           <Button className="w-full sm:w-auto" onClick={handleCreateBoard}>
@@ -80,7 +126,7 @@ export default function DashboardPage() {
                     Total Boards
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {boards.length}
+                    {filteredBoards.length}
                   </p>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -97,7 +143,7 @@ export default function DashboardPage() {
                     Active Projects
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {boards.length}
+                    {filteredBoards.length}
                   </p>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -115,7 +161,7 @@ export default function DashboardPage() {
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
                     {
-                      boards.filter((board) => {
+                      filteredBoards.filter((board) => {
                         const updatedAt = new Date(board.updated_at);
                         const oneWeekAgo = new Date();
                         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -138,7 +184,7 @@ export default function DashboardPage() {
                     Total Boards
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {boards.length}
+                    {filteredBoards.length}
                   </p>
                 </div>
                 <div className="h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -157,8 +203,8 @@ export default function DashboardPage() {
               </h2>
               <p className="text-gray-600">Manage your projects and tasks</p>
             </div>
-            <div className="flex flex-col   space-y-2 sm:space-y-0 sm:flex-row items-stretch sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-2 bg-white border p-1">
+            <div className="flex flex-col   space-y-2 sm:space-y-0 sm:flex-row items-stretch sm:items-center sm:justify-between sm:space-x-4">
+              <div className="flex rounded items-center space-x-2 bg-white border p-1">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
@@ -174,7 +220,11 @@ export default function DashboardPage() {
                   <List />
                 </Button>
               </div>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFilterOpen(true)}
+              >
                 <Filter />
                 Filter
               </Button>
@@ -191,14 +241,17 @@ export default function DashboardPage() {
               id="search"
               placeholder="Search Boards..."
               className="pl-10"
+              onChange={(e) => {
+                setFilters((prev) => ({ ...prev, search: e.target.value }));
+              }}
             />
           </div>
           {/*Boards list/grid */}
-          {boards.length === 0 ? (
+          {filteredBoards.length === 0 ? (
             <div>No boards yet</div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {boards.map((board, key) => (
+              {filteredBoards.map((board, key) => (
                 <Link href={`/boards/${board.id}`} key={key}>
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer  group">
                     <CardHeader className="pb-3">
@@ -296,6 +349,107 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+      {/*filter modal*/}
+      <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <DialogContent className="w-[95vw] max-w-[425px] mx-auto">
+          <DialogHeader>
+            <DialogTitle>Filter Boards </DialogTitle>
+            <p className="text-sm text-gray-600">
+              Filter boards by title,date, or task counts
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Search</Label>
+              <Input
+                id="search"
+                placeholder="Search board titles..."
+                onChange={(e) => {
+                  setFilters((prev) => ({ ...prev, search: e.target.value }));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Date Range</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Start Date </Label>
+                  <Input
+                    type="date"
+                    onChange={(e) => {
+                      setFilters((prev) => ({
+                        ...prev,
+                        dateRange: {
+                          ...prev.dateRange,
+                          start: e.target.value || null,
+                        },
+                      }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">End Date </Label>
+                  <Input
+                    type="date"
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        dateRange: {
+                          ...prev.dateRange,
+                          end: e.target.value || null,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Task Count</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Minimum </Label>
+                  <Input
+                    type="number"
+                    placeholder="Min tasks"
+                    min={"0"}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        taskCount: {
+                          ...prev.taskCount,
+                          min: e.target.value ? Number(e.target.value) : null,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Maximum </Label>
+                  <Input
+                    type="number"
+                    min={"0"}
+                    placeholder="Max tasks"
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        taskCount: {
+                          ...prev.taskCount,
+                          max: e.target.value ? Number(e.target.value) : null,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-between pt-4 space-y-2 sm:space-y-0 sm:space-x-2">
+              <Button variant={"outline"}>Clear Filters</Button>
+              <Button>Apply Filters</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

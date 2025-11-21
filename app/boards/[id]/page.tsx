@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useBoard } from "@/lib/hooks/useBoards";
 import { ColumnWithTasks, Task } from "@/lib/supabase/models";
 import { DialogTrigger } from "@radix-ui/react-dialog";
-import { Calendar, MoreHorizontal, Plus, Pointer, User } from "lucide-react";
+import { Calendar, MoreHorizontal, Plus, User } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -301,6 +301,7 @@ function SortableTask({ task, columnId }: { task: Task; columnId: string }) {
                 name="title"
                 placeholder="Enter task title"
                 defaultValue={displayedTask.title}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -938,7 +939,7 @@ export default function BoardPage() {
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-3">
-                      {column.tasks.map((task, key) => (
+                      {column.tasks.map((task) => (
                         <SortableTask
                           task={task}
                           key={task.id}
